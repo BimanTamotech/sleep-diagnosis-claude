@@ -8,6 +8,7 @@ import { SleepQualityCard } from '@/components/SleepQualityCard'
 import { EnvelopeIcon } from '@heroicons/react/20/solid'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 // import { Button } from '@/components/Button'
 import { SleepDataDetails } from '@/components/SleepDataDetails'
 import { SleepQualityDetails } from '@/components/SleepQualityDetails'
@@ -677,12 +678,12 @@ export default function Report() {
               <p className="mt-2 text-sm text-gray-500">
                 Please complete all questionnaires before viewing your report.
               </p>
-              <a
+              <Link
                 href="/diagnosis"
                 className="mt-6 rounded-lg bg-bluebg-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-bluebg-600"
               >
                 Go to Questionnaire
-              </a>
+              </Link>
             </div>
           ) : (
             pageContent[currentContent]
