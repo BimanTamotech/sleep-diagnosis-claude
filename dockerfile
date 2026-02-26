@@ -17,7 +17,7 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate
 
-# Build Next.js (DATABASE_URL placeholder needed for Prisma generate)
+# Build Next.js — do NOT set DATABASE_URL here or it gets inlined and overrides compose at runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
