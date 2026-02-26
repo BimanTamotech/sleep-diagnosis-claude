@@ -3,6 +3,7 @@ import EmailProvider from 'next-auth/providers/email'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '~/lib/prisma'
 import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 // Email HTML body
 function html({ url, host, email }) {
   // Insert invisible space into domains and email address to prevent both the
@@ -131,19 +132,83 @@ export const authOptions = {
   // },
   // Configure one or more authentication providers
   providers: [
+    // 发信优先级：1) 阿里云 DirectMail / SMTP  2) Resend  3) 开发环境打印链接
+    // 阿里云 DirectMail：控制台创建发信地址并设置 SMTP 密码，然后配置：
+    //   EMAIL_SERVER_HOST=smtpdm.aliyun.com  EMAIL_SERVER_PORT=465
+    //   EMAIL_SERVER_USER=你的发信地址  EMAIL_SERVER_PASSWORD=SMTP密码  EMAIL_FROM=同上
     EmailProvider({
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
       async sendVerificationRequest({ identifier: email, url }) {
-        const resend = new Resend(process.env.RESEND_API_KEY)
+        const from = process.env.EMAIL_FROM || 'noreply@example.com'
         const { host } = new URL(url)
-        const { error } = await resend.emails.send({
-          from: process.env.EMAIL_FROM,
-          to: email,
-          subject: `Login to Sleep Diagnosis / 登录Sleep Diagnosis`,
-          text: text({ url, host }),
-          html: html({ url, host, email }),
-        })
-        if (error) throw new Error(error.message)
+        const subject = 'Login to Sleep Diagnosis / 登录Sleep Diagnosis'
+        const textBody = text({ url, host })
+        const htmlBody = html({ url, host, email })
+
+        // 优先使用 阿里云 DirectMail / 任意 SMTP（EMAIL_SERVER_*）
+        const smtpHost = (process.env.EMAIL_SERVER_HOST || '').trim()
+        const smtpPort = Number(process.env.EMAIL_SERVER_PORT) || 465
+        const smtpUser = (process.env.EMAIL_SERVER_USER || '').trim()
+        const smtpPass = (process.env.EMAIL_SERVER_PASSWORD || '').trim()
+
+        if (smtpHost && smtpUser && smtpPass) {
+          console.log('[NextAuth Email] 使用 SMTP 发信:', smtpHost, 'port', smtpPort)
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: { user: smtpUser, pass: smtpPass },
+          })
+          try {
+            await transporter.sendMail({
+              from,
+              to: email,
+              subject,
+              text: textBody,
+              html: htmlBody,
+            })
+            console.log('[NextAuth Email] SMTP 发送成功:', email)
+            return
+          } catch (err) {
+            console.error('[NextAuth Email] SMTP 发送失败:', err.message)
+            throw new Error(err.message || '邮件发送失败')
+          }
+        }
+
+        // 其次使用 Resend（仅当 key 存在且非占位符时）
+        const apiKey = (process.env.RESEND_API_KEY || '').trim()
+        const hasValidResendKey = apiKey.length > 20 && apiKey.startsWith('re_')
+        if (hasValidResendKey) {
+          try {
+            const resend = new Resend(apiKey)
+            const { error } = await resend.emails.send({
+              from,
+              to: email,
+              subject,
+              text: textBody,
+              html: htmlBody,
+            })
+            if (error) {
+              console.error('[NextAuth Email] Resend 发送失败:', error.message)
+              throw new Error(error.message || '邮件发送失败')
+            }
+            return
+          } catch (err) {
+            console.error('[NextAuth Email] Resend 错误:', err.message)
+            throw new Error(err.message || '邮件发送失败')
+          }
+        }
+
+        // 开发环境：未配置任何发信方式时打印链接
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[NextAuth Email] 未配置 SMTP 或 RESEND_API_KEY。本次登录链接（仅本次有效）：')
+          console.log(url)
+          return
+        }
+        console.error('[NextAuth Email] 未配置发信：SMTP(', !!smtpHost, !!smtpUser, !!smtpPass, ') Resend key length=', (process.env.RESEND_API_KEY || '').length)
+        throw new Error(
+          '未配置邮件发送：请设置 阿里云 DirectMail（EMAIL_SERVER_*）或 RESEND_API_KEY。'
+        )
       },
     }),
     // {

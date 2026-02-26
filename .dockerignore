@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build
+.next
+out
+build
+dist
+
+.env
+.env.*
+!.env.example
+
+# Git / IDE
+.git
+.gitignore
+.dockerignore
+Dockerfile*
+docker-compose*
+.vscode
+.idea
+*.md
+
+# Misc
+npm-debug.log*
+.DS_Store
+*.pem

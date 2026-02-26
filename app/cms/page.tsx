@@ -4,6 +4,9 @@ import { prisma } from '~/lib/prisma'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
+// Avoid prerender at build time (no DB in Docker build); render at request time with runtime DATABASE_URL
+export const dynamic = 'force-dynamic'
+
 // Server Component — reads DB directly, no client JS needed
 export default async function CMSDashboardPage() {
   const [totalQuestionnaires, totalUsers, totalResponses, recentQuestionnaires] =

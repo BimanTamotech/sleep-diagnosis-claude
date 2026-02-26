@@ -178,7 +178,7 @@ export default function Diagnosis({ questionData, maxPage, sections = [] }) {
   )
 }
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
   try {
     const { prisma } = await import('../../lib/prisma')
 
@@ -195,7 +195,7 @@ export async function getStaticProps() {
     })
 
     if (questionnaires.length === 0) {
-      return { props: { questionData: [], maxPage: 1, sections: [] }, revalidate: 60 }
+      return { props: { questionData: [], maxPage: 1, sections: [] } }
     }
 
     // Build sections list (for nav titles)
@@ -243,13 +243,11 @@ export async function getStaticProps() {
 
     return {
       props: { questionData, maxPage, sections },
-      revalidate: 60,
     }
   } catch (error) {
     console.warn('Failed to load questions from Prisma:', error.message)
     return {
       props: { questionData: [], maxPage: 1, sections: [] },
-      revalidate: 60,
     }
   }
 }
