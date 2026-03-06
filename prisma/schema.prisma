@@ -116,7 +116,7 @@ model Questionnaire {
   description String?             @db.Text
   status      QuestionnaireStatus @default(DRAFT)
   version     Int                 @default(1)
-  order       Int                 // display order in CMS list
+  order       Int                 @default(0) // display order in CMS list
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
