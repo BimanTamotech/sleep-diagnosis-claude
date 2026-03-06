@@ -5,6 +5,24 @@ import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import toast from 'react-hot-toast'
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
@@ -217,9 +235,15 @@ function QuestionCard({ question, onDeleted, onOptionChanged }: QuestionCardProp
           <div className="mt-1 flex items-center gap-2">
             <span className={clsx(
               'rounded-full px-2 py-0.5 text-xs font-medium',
-              question.type === 'mcq' ? 'bg-excellent-50 text-excellent-500' : 'bg-fair-50 text-fair-500',
+              question.type === 'mcq' ? 'bg-excellent-50 text-excellent-500' : 
+              question.type === 'calendar' ? 'bg-blue-50 text-blue-500' :
+              question.type === 'time' ? 'bg-purple-50 text-purple-500' :
+              'bg-fair-50 text-fair-500',
             )}>
-              {question.type === 'mcq' ? 'Multiple Choice' : 'Free Text'}
+              {question.type === 'mcq' ? 'Multiple Choice' : 
+               question.type === 'calendar' ? 'Date Picker' :
+               question.type === 'time' ? 'Time Picker' :
+               'Free Text'}
             </span>
             {question.isRequired && (
               <span className="text-xs text-gray-400">Required</span>
@@ -338,6 +362,8 @@ function AddQuestionForm({ questionnaireId, nextOrder, onAdded }: AddQuestionFor
         >
           <option value="mcq">Multiple Choice</option>
           <option value="text">Free Text</option>
+          <option value="calendar">Date Picker</option>
+          <option value="time">Time Picker</option>
         </select>
         <div className="ml-auto flex gap-2">
           <button
@@ -365,9 +391,16 @@ function AddQuestionForm({ questionnaireId, nextOrder, onAdded }: AddQuestionFor
 // ---------------------------------------------------------------------------
 export function QuestionEditor({ questionnaireId, initialQuestions }: QuestionEditorProps) {
   const [questions, setQuestions] = useState(initialQuestions)
+  const [reorderedQuestions, setReorderedQuestions] = useState<typeof initialQuestions | null>(null)
   const { invalidateQuestionnaire } = useCacheInvalidation()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   // Sync local state when router.refresh() delivers updated server data
   useEffect(() => {
@@ -376,40 +409,73 @@ export function QuestionEditor({ questionnaireId, initialQuestions }: QuestionEd
 
   function refresh() {
     invalidateQuestionnaire(questionnaireId)
+    setReorderedQuestions(null)
     // Re-fetch Server Component data without a full page reload
     router.refresh()
   }
 
-  function handleReorder() {
-    const ids = questions.map((q) => q.id)
-    startTransition(async () => {
-      const result = await reorderQuestions(questionnaireId, ids)
-      if (!result.success) toast.error(result.error)
-    })
+  const displayQuestions = reorderedQuestions || questions
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = displayQuestions.findIndex((q) => q.id === active.id)
+      const newIndex = displayQuestions.findIndex((q) => q.id === over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(displayQuestions, oldIndex, newIndex)
+        const orderedIds = newOrder.map((q) => q.id)
+        
+        setReorderedQuestions(newOrder)
+        
+        startTransition(async () => {
+          const result = await reorderQuestions(questionnaireId, orderedIds)
+          if (result.success) {
+            toast.success('Questions reordered.')
+            refresh()
+          } else {
+            toast.error(result.error)
+            setReorderedQuestions(null)
+          }
+        })
+      }
+    }
   }
 
   return (
-    <div className={clsx('space-y-3', pending && 'opacity-70 pointer-events-none')}>
-      {questions.length === 0 ? (
-        <p className="py-4 text-center text-sm text-gray-400">
-          No questions yet. Add the first one below.
-        </p>
-      ) : (
-        questions.map((q, idx) => (
-          <QuestionCard
-            key={q.id}
-            question={q}
-            index={idx}
-            onDeleted={refresh}
-            onOptionChanged={refresh}
-          />
-        ))
-      )}
-      <AddQuestionForm
-        questionnaireId={questionnaireId}
-        nextOrder={questions.length}
-        onAdded={refresh}
-      />
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className={clsx('space-y-3', pending && 'opacity-70 pointer-events-none')}>
+        {displayQuestions.length === 0 ? (
+          <p className="py-4 text-center text-sm text-gray-400">
+            No questions yet. Add the first one below.
+          </p>
+        ) : (
+          <SortableContext
+            items={displayQuestions.map((q) => q.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {displayQuestions.map((q) => (
+              <DraggableQuestionCard
+                key={q.id}
+                question={q}
+                index={0}
+                onDeleted={refresh}
+                onOptionChanged={refresh}
+              />
+            ))}
+          </SortableContext>
+        )}
+        <AddQuestionForm
+          questionnaireId={questionnaireId}
+          nextOrder={displayQuestions.length}
+          onAdded={refresh}
+        />
+      </div>
+    </DndContext>
   )
 }

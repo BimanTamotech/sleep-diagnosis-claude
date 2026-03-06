@@ -1,16 +1,34 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useTransition, useState } from 'react'
 import Link from 'next/link'
 import { clsx } from 'clsx'
 import toast from 'react-hot-toast'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { useQuestionnaires, useCacheInvalidation } from '~/hooks/useQueries'
 import { useUIState } from '~/store/useUIState'
 import {
   deleteQuestionnaire,
   publishQuestionnaire,
   archiveQuestionnaire,
+  reorderQuestionnaires,
 } from '~/app/actions/cms'
+import { QuestionnaireRow } from './QuestionnaireRow'
 
 const STATUS_LABELS = {
   DRAFT: { label: 'Draft', cls: 'bg-gray-100 text-gray-600' },
@@ -30,6 +48,7 @@ export function QuestionnaireListClient() {
 
   const { invalidateQuestionnaires } = useCacheInvalidation()
   const [isPending, startTransition] = useTransition()
+  const [reorderedItems, setReorderedItems] = useState<typeof data.data | null>(null)
 
   const { data, isLoading, isError } = useQuestionnaires({
     page: questionnairePage,
@@ -37,6 +56,12 @@ export function QuestionnaireListClient() {
     status: questionnaireStatusFilter,
     search: questionnaireSearch,
   })
+
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
@@ -75,6 +100,36 @@ export function QuestionnaireListClient() {
     })
   }
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const displayItems = reorderedItems || data?.data || []
+      const oldIndex = displayItems.findIndex((item) => item.id === active.id)
+      const newIndex = displayItems.findIndex((item) => item.id === over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(displayItems, oldIndex, newIndex)
+        const orderedIds = newOrder.map((item) => item.id)
+        
+        setReorderedItems(newOrder)
+        
+        startTransition(async () => {
+          const result = await reorderQuestionnaires(orderedIds)
+          if (result.success) {
+            toast.success('Questionnaires reordered.')
+            invalidateQuestionnaires()
+          } else {
+            toast.error(result.error)
+            setReorderedItems(null)
+          }
+        })
+      }
+    }
+  }
+
+  const displayItems = reorderedItems || data?.data || []
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -112,7 +167,7 @@ export function QuestionnaireListClient() {
           <p className="py-10 text-center text-sm text-verypoor-500">
             Failed to load questionnaires.
           </p>
-        ) : data?.data.length === 0 ? (
+        ) : displayItems.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-gray-400">No questionnaires found.</p>
             <Link
@@ -123,86 +178,44 @@ export function QuestionnaireListClient() {
             </Link>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-pagebg-100">
-              <tr>
-                {['Title', 'Slug', 'Questions', 'Status', 'Updated', ''].map((h) => (
-                  <th
-                    key={h}
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 first:pl-6 last:pr-6"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
-              {data?.data.map((q) => {
-                const st = STATUS_LABELS[q.status]
-                return (
-                  <tr
-                    key={q.id}
-                    className={clsx('hover:bg-pagebg-100 transition-colors', isPending && 'opacity-60')}
-                  >
-                    <td className="max-w-xs py-3 pl-6 pr-4">
-                      <Link
-                        href={`/cms/questionnaires/${q.id}`}
-                        className="truncate text-sm font-medium text-gray-900 hover:text-excellent-500"
-                      >
-                        {q.title}
-                      </Link>
-                      {q.description && (
-                        <p className="truncate text-xs text-gray-400">{q.description}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono text-gray-500">{q.slug}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{q._count.questions}</td>
-                    <td className="px-4 py-3">
-                      <span className={clsx('inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold', st.cls)}>
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">
-                      {new Date(q.updatedAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 pl-4 pr-6">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/cms/questionnaires/${q.id}`}
-                          className="rounded-lg px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:bg-pagebg-100"
-                        >
-                          Edit
-                        </Link>
-                        {q.status === 'DRAFT' && (
-                          <button
-                            onClick={() => handlePublish(q.id)}
-                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-good-500 ring-1 ring-good-500 hover:bg-good-50"
-                          >
-                            Publish
-                          </button>
-                        )}
-                        {q.status === 'PUBLISHED' && (
-                          <button
-                            onClick={() => handleArchive(q.id)}
-                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-fair-500 ring-1 ring-fair-500 hover:bg-fair-50"
-                          >
-                            Archive
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(q.id, q.title)}
-                          className="rounded-lg px-2.5 py-1 text-xs font-medium text-verypoor-500 ring-1 ring-verypoor-500 hover:bg-verypoor-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-pagebg-100">
+                <tr>
+                  {['', 'Title', 'Slug', 'Questions', 'Status', 'Updated', ''].map((h) => (
+                    <th
+                      key={h}
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 first:pl-6 last:pr-6"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 bg-white">
+                <SortableContext
+                  items={displayItems.map((q) => q.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {displayItems.map((q) => (
+                    <QuestionnaireRow
+                      key={q.id}
+                      questionnaire={q}
+                      isPending={isPending}
+                      onDelete={handleDelete}
+                      onPublish={handlePublish}
+                      onArchive={handleArchive}
+                    />
+                  ))}
+                </SortableContext>
+              </tbody>
+            </table>
+          </DndContext>
         )}
       </div>
 
