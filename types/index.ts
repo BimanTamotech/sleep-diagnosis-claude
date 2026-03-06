@@ -96,9 +96,19 @@ export interface CreateQuestionPayload {
   questionnaireId: string
   text: string
   type: QuestionType
-  order: number
+  order?: number  // optional; if not provided, will be auto-assigned
   isRequired?: boolean
   options?: Array<{ label: string; value: string; score?: number; order?: number }>
+  // Calendar widget configuration (for type === 'calendar')
+  calendarMinYear?: number
+  calendarMaxYear?: number
+  calendarMinMonth?: number
+  calendarMaxMonth?: number
+  calendarMinDate?: number
+  calendarMaxDate?: number
+  // Time picker configuration (for type === 'time')
+  minHours?: number
+  maxHours?: number
 }
 
 export interface UpdateQuestionPayload {
@@ -107,6 +117,16 @@ export interface UpdateQuestionPayload {
   type?: QuestionType
   order?: number
   isRequired?: boolean
+  // Calendar widget configuration
+  calendarMinYear?: number
+  calendarMaxYear?: number
+  calendarMinMonth?: number
+  calendarMaxMonth?: number
+  calendarMinDate?: number
+  calendarMaxDate?: number
+  // Time picker configuration
+  minHours?: number
+  maxHours?: number
 }
 
 export interface CreateOptionPayload {

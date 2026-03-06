@@ -42,7 +42,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         updatedAt: true,
         _count: { select: { questions: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { order: 'asc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

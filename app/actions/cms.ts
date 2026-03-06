@@ -35,12 +35,20 @@ export async function createQuestionnaire(
       return { success: false, error: `Slug "${payload.slug}" is already in use.` }
     }
 
+    // Auto-assign order as max(existing orders) + 1
+    const maxOrderQuestionnaire = await prisma.questionnaire.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    })
+    const order = (maxOrderQuestionnaire?.order ?? -1) + 1
+
     const questionnaire = await prisma.questionnaire.create({
       data: {
         title: payload.title,
         slug: payload.slug,
         description: payload.description ?? null,
         status: payload.status ?? QuestionnaireStatus.DRAFT,
+        order,
       },
     })
 
@@ -119,24 +127,68 @@ export async function archiveQuestionnaire(id: string): Promise<ActionResult<Que
   return updateQuestionnaire({ id, status: QuestionnaireStatus.ARCHIVED })
 }
 
+/**
+ * Reorder questionnaires in bulk.
+ * Accepts an ordered array of questionnaire IDs; assigns order 0, 1, 2 … etc.
+ */
+export async function reorderQuestionnaires(
+  orderedIds: string[],
+): Promise<ActionResult> {
+  try {
+    await prisma.$transaction(
+      orderedIds.map((id, idx) =>
+        prisma.questionnaire.update({ where: { id }, data: { order: idx } }),
+      ),
+    )
+
+    revalidatePath('/cms/questionnaires')
+    return { success: true, data: undefined }
+  } catch (err) {
+    console.error('[reorderQuestionnaires]', err)
+    return { success: false, error: 'Failed to reorder questionnaires.' }
+  }
+}
+
 // ===========================================================================
 // QUESTION ACTIONS
 // ===========================================================================
 
 /**
  * Create a question (with optional inline options for MCQ).
+ * If order is not provided, it will be automatically assigned as max(existing orders) + 1.
  */
 export async function createQuestion(
   payload: CreateQuestionPayload,
 ): Promise<ActionResult<Question>> {
   try {
+    // Auto-calculate order if not provided
+    let order = payload.order
+    if (order === undefined) {
+      const maxOrderQuestion = await prisma.question.findFirst({
+        where: { questionnaireId: payload.questionnaireId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      })
+      order = (maxOrderQuestion?.order ?? -1) + 1
+    }
+
     const question = await prisma.question.create({
       data: {
         questionnaireId: payload.questionnaireId,
         text: payload.text,
         type: payload.type,
-        order: payload.order,
+        order,
         isRequired: payload.isRequired ?? true,
+        // Calendar configuration
+        calendarMinYear: payload.calendarMinYear ?? null,
+        calendarMaxYear: payload.calendarMaxYear ?? null,
+        calendarMinMonth: payload.calendarMinMonth ?? null,
+        calendarMaxMonth: payload.calendarMaxMonth ?? null,
+        calendarMinDate: payload.calendarMinDate ?? null,
+        calendarMaxDate: payload.calendarMaxDate ?? null,
+        // Time picker configuration
+        minHours: payload.minHours ?? null,
+        maxHours: payload.maxHours ?? null,
         options:
           payload.type === 'mcq' && payload.options?.length
             ? {
@@ -160,7 +212,7 @@ export async function createQuestion(
 }
 
 /**
- * Update a question's text, type, or order.
+ * Update a question's text, type, order, or widget configuration.
  */
 export async function updateQuestion(
   payload: UpdateQuestionPayload,
@@ -173,6 +225,16 @@ export async function updateQuestion(
         ...(payload.type !== undefined && { type: payload.type }),
         ...(payload.order !== undefined && { order: payload.order }),
         ...(payload.isRequired !== undefined && { isRequired: payload.isRequired }),
+        // Calendar configuration
+        ...(payload.calendarMinYear !== undefined && { calendarMinYear: payload.calendarMinYear }),
+        ...(payload.calendarMaxYear !== undefined && { calendarMaxYear: payload.calendarMaxYear }),
+        ...(payload.calendarMinMonth !== undefined && { calendarMinMonth: payload.calendarMinMonth }),
+        ...(payload.calendarMaxMonth !== undefined && { calendarMaxMonth: payload.calendarMaxMonth }),
+        ...(payload.calendarMinDate !== undefined && { calendarMinDate: payload.calendarMinDate }),
+        ...(payload.calendarMaxDate !== undefined && { calendarMaxDate: payload.calendarMaxDate }),
+        // Time picker configuration
+        ...(payload.minHours !== undefined && { minHours: payload.minHours }),
+        ...(payload.maxHours !== undefined && { maxHours: payload.maxHours }),
       },
     })
 
