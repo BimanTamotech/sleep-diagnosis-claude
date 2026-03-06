@@ -24,8 +24,10 @@ enum Role {
 }
 
 enum QuestionType {
-  mcq  // multiple-choice question (uses Option rows)
-  text // free-text answer (stored in Response.textAnswer)
+  mcq      // multiple-choice question (uses Option rows)
+  text     // free-text answer (stored in Response.textAnswer)
+  calendar // date picker with configurable bounds
+  time     // time/duration picker (hours and minutes)
 }
 
 enum QuestionnaireStatus {
@@ -114,6 +116,7 @@ model Questionnaire {
   description String?             @db.Text
   status      QuestionnaireStatus @default(DRAFT)
   version     Int                 @default(1)
+  order       Int                 // display order in CMS list
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -138,6 +141,19 @@ model Question {
   header          String?      @db.Text // optional section header (English)
   headerCn        String?      @db.Text // optional section header (Chinese)
   isRequired      Boolean      @default(true)
+  
+  // Calendar widget configuration (used when type === 'calendar')
+  calendarMinYear Int?
+  calendarMaxYear Int?
+  calendarMinMonth Int?
+  calendarMaxMonth Int?
+  calendarMinDate Int?
+  calendarMaxDate Int?
+  
+  // Time picker configuration (used when type === 'time')
+  minHours Int?
+  maxHours Int?
+  
   questionnaireId String
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
