@@ -205,7 +205,11 @@ export async function getServerSideProps() {
     const questionData = []
     questionnaires.forEach((questionnaire, sectionIdx) => {
       questionnaire.questions.forEach((q) => {
-        const questionType = q.type === 'mcq' ? 'oneChoice' : (q.subType ?? 'freeText')
+        const questionType =
+          q.type === 'mcq' ? 'oneChoice' :
+          q.type === 'calendar' ? 'exactYear' :
+          q.type === 'time' ? 'exactTime' :
+          (q.subType ?? 'freeText')
         const mapped = {
           _id: q.id,
           group_id: sectionIdx + 1,
