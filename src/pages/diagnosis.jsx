@@ -191,7 +191,7 @@ export async function getServerSideProps() {
           orderBy: { order: 'asc' },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { order: 'asc' },
     })
 
     if (questionnaires.length === 0) {
