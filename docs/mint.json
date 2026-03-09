@@ -1,0 +1,124 @@
+{
+  "name": "Sleep Diagnosis Platform",
+  "logo": {
+    "light": "https://engineeringsleep.com/wp-content/uploads/elementor/thumbs/Logo-only-orvmlkajrglx8g5j9u2ambsuumqvdttd2pzwr5bmo8.png",
+    "dark": "https://engineeringsleep.com/wp-content/uploads/elementor/thumbs/Logo-only-orvmlkajrglx8g5j9u2ambsuumqvdttd2pzwr5bmo8.png"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#0ea5e9",
+    "light": "#e0f2fe",
+    "dark": "#0c4a6e",
+    "ultraLight": "#f0f9ff",
+    "ultraDark": "#082f49",
+    "background": {
+      "light": "#ffffff",
+      "dark": "#0f172a"
+    }
+  },
+  "modeToggle": {
+    "default": "light",
+    "isHidden": false
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book",
+      "url": "/"
+    },
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "/api"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quick-start",
+        "project-structure"
+      ]
+    },
+    {
+      "group": "Architecture",
+      "pages": [
+        "architecture/overview",
+        "architecture/tech-stack",
+        "architecture/data-model"
+      ]
+    },
+    {
+      "group": "Backend",
+      "pages": [
+        "backend/server-actions",
+        "backend/database-schema",
+        "backend/authentication"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api/questionnaires",
+        "api/questions",
+        "api/users",
+        "api/responses",
+        "api/export"
+      ]
+    },
+    {
+      "group": "CMS",
+      "pages": [
+        "cms/overview",
+        "cms/questionnaire-management",
+        "cms/user-management",
+        "cms/permissions"
+      ]
+    },
+    {
+      "group": "Frontend",
+      "pages": [
+        "frontend/components",
+        "frontend/pages",
+        "frontend/hooks",
+        "frontend/styling"
+      ]
+    },
+    {
+      "group": "Deployment",
+      "pages": [
+        "deployment/overview",
+        "deployment/vercel",
+        "deployment/docker",
+        "deployment/environment-variables",
+        "deployment/mintlify"
+      ]
+    },
+    {
+      "group": "Development",
+      "pages": [
+        "development/setup",
+        "development/database",
+        "development/testing",
+        "development/best-practices"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com"
+  }
+}

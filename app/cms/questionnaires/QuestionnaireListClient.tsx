@@ -21,6 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useQuestionnaires, useCacheInvalidation } from '~/hooks/useQueries'
+import type { QuestionnaireListItem } from '~/types'
 import { useUIState } from '~/store/useUIState'
 import {
   deleteQuestionnaire,
@@ -48,7 +49,7 @@ export function QuestionnaireListClient() {
 
   const { invalidateQuestionnaires } = useCacheInvalidation()
   const [isPending, startTransition] = useTransition()
-  const [reorderedItems, setReorderedItems] = useState<typeof data.data | null>(null)
+  const [reorderedItems, setReorderedItems] = useState<QuestionnaireListItem[] | null>(null)
 
   const { data, isLoading, isError } = useQuestionnaires({
     page: questionnairePage,

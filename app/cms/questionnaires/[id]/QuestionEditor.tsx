@@ -31,8 +31,8 @@ import {
   reorderQuestions,
 } from '~/app/actions/cms'
 import { useCacheInvalidation } from '~/hooks/useQueries'
-import type { QuestionWithOptions } from '~/types'
-import type { QuestionType, Option } from '@prisma/client'
+import type { QuestionWithOptions, QuestionType } from '~/types'
+import type { Option } from '@prisma/client'
 
 interface QuestionEditorProps {
   questionnaireId: string
@@ -288,6 +288,31 @@ function QuestionCard({ question, onDeleted, onOptionChanged }: QuestionCardProp
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Draggable wrapper for QuestionCard
+// ---------------------------------------------------------------------------
+function DraggableQuestionCard(props: QuestionCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.question.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-gray-300 hover:text-gray-500 active:cursor-grabbing z-10"
+        aria-label="Drag to reorder"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+          <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75ZM2 10a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10Zm0 5.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+        </svg>
+      </button>
+      <div className="pl-6">
+        <QuestionCard {...props} />
+      </div>
     </div>
   )
 }

@@ -13,8 +13,9 @@ import type {
   QuestionnaireStatus,
 } from '@prisma/client'
 
-// Re-export Prisma enums for convenience
+// Re-export Prisma enums and model types for convenience
 export { Role, QuestionType, QuestionnaireStatus }
+export type { Option }
 
 // ---------------------------------------------------------------------------
 // Extended / nested types used across the app

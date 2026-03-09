@@ -62,9 +62,9 @@ export function QuestionnaireRow({
         <svg
           className="h-5 w-5"
           fill="currentColor"
-          viewBox="0 0 20 20"
+          viewBox="0 0 24 24"
         >
-          <path d="M7 2a2 2 0 1 1 4 0 2 2 0 0 1-4 0ZM7 12a2 2 0 1 1 4 0 2 2 0 0 1-4 0ZM7 16a2 2 0 1 1 4 0 2 2 0 0 1-4 0Z" />
+          <path fillRule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
         </svg>
       </td>
       <td className="max-w-xs py-3 pl-0 pr-4">

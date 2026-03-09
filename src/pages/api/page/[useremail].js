@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     // Get all published questionnaires in creation order — same as getStaticProps
     const questionnaires = await prisma.questionnaire.findMany({
       where: { status: 'PUBLISHED' },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { order: 'asc' },
       select: { id: true },
     })
 
